@@ -5,8 +5,20 @@ Answer each question in 3 to 5 sentences. Be specific and honest about what actu
 ## 1. What was broken when you started?
 
 - What did the game look like the first time you ran it?
+-> The game is to guess the secret number, we have to put an number in the guess field and the hint will tell if we have to go Higher or Lower.
+
 - List at least two concrete bugs you noticed at the start  
-  (for example: "the hints were backwards").
+  1) The given hints were wrong
+    expected: if num < secret num then it should say "Go Higher" and if num > secret num it sould say "Go Lower"
+    current: if num < secret it says "Go Lower" and if num > secret num it say "Go Higher" 
+
+  2) Invalid input in guess was counting as an attempt
+   expected: Invalid input should not decrement the attempts left.
+   current: Invalid input is decrementing the attempts left.
+
+  3) Clicking on new game button dosen't reset the stats.
+  expected: clicking on new game button should reset the stats and we should be able to play the game again.
+  current: clicking on new game button dosen't reset the stats and not able to play the game again.
 
 ---
 
