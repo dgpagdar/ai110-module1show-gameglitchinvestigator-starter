@@ -31,7 +31,7 @@ if "secret" not in st.session_state:
     st.session_state.secret = random.randint(low, high)
 
 if "attempts" not in st.session_state:
-    st.session_state.attempts = 1
+    st.session_state.attempts = 0  # Fixed: start at 0 (no attempts used), was 1 causing off-by-one in display
 
 if "score" not in st.session_state:
     st.session_state.score = 0
@@ -41,6 +41,9 @@ if "status" not in st.session_state:
 
 if "history" not in st.session_state:
     st.session_state.history = []
+
+if "last_hint" not in st.session_state:
+    st.session_state.last_hint = None
 
 # Fixed: game_id tracks game resets so text input key changes, clearing old value
 if "game_id" not in st.session_state:
@@ -52,11 +55,12 @@ if "difficulty" not in st.session_state:
 # Fixed: detect difficulty change and reset all game state so new difficulty takes effect
 if st.session_state.difficulty != difficulty:
     st.session_state.difficulty = difficulty
-    st.session_state.attempts = 1
+    st.session_state.attempts = 0
     st.session_state.secret = random.randint(low, high)
     st.session_state.score = 0
     st.session_state.status = "playing"
     st.session_state.history = []
+    st.session_state.last_hint = None
     st.session_state.game_id += 1
     st.rerun()
 
@@ -67,6 +71,10 @@ st.info(
     f"Guess a number between {low} and {high}. "
     f"Attempts left: {attempt_limit - st.session_state.attempts}"
 )
+
+# Fixed: hint stored in session state and shown here so it renders with updated state after rerun
+if st.session_state.last_hint:
+    st.warning(st.session_state.last_hint)
 
 with st.expander("Developer Debug Info"):
     st.write("Secret:", st.session_state.secret)
@@ -91,20 +99,28 @@ with col3:
 
 # Fixed: reset all game state on new game (was only resetting attempts and secret)
 if new_game:
-    st.session_state.attempts = 1  # Fixed: was resetting to 0, should match initialization of 1
+    st.session_state.attempts = 0  # Fixed: reset to 0 to match initialization
     st.session_state.secret = random.randint(low, high)  # Fixed: was hardcoded randint(1,100), ignoring difficulty
     st.session_state.score = 0
     st.session_state.status = "playing"  # Fixed: was never reset, blocked play after win/loss
     st.session_state.history = []
+    st.session_state.last_hint = None
     st.session_state.game_id += 1
     st.success("New game started.")
     st.rerun()
 
 if st.session_state.status != "playing":
     if st.session_state.status == "won":
-        st.success("You already won. Start a new game to play again.")
+        st.balloons()
+        st.success(
+            f"You won! The secret was {st.session_state.secret}. "
+            f"Final score: {st.session_state.score}. Start a new game to play again."
+        )
     else:
-        st.error("Game over. Start a new game to try again.")
+        st.error(
+            f"Out of attempts! The secret was {st.session_state.secret}. "
+            f"Score: {st.session_state.score}. Start a new game to try again."
+        )
     st.stop()
 
 if submit:
@@ -121,8 +137,8 @@ if submit:
 
         outcome, message = check_guess(guess_int, secret)
 
-        if show_hint:
-            st.warning(message)
+        # Fixed: store hint in session state so it renders correctly after rerun
+        st.session_state.last_hint = message if show_hint else None
 
         st.session_state.score = update_score(
             current_score=st.session_state.score,
@@ -131,20 +147,13 @@ if submit:
         )
 
         if outcome == "Win":
-            st.balloons()
             st.session_state.status = "won"
-            st.success(
-                f"You won! The secret was {st.session_state.secret}. "
-                f"Final score: {st.session_state.score}"
-            )
-        else:
-            if st.session_state.attempts >= attempt_limit:
-                st.session_state.status = "lost"
-                st.error(
-                    f"Out of attempts! "
-                    f"The secret was {st.session_state.secret}. "
-                    f"Score: {st.session_state.score}"
-                )
+        elif st.session_state.attempts >= attempt_limit:
+            st.session_state.status = "lost"
+
+        st.session_state.game_id += 1  # Fixed: increment on every submit so input key changes and field clears
+        # Fixed: rerun so attempts left, history, and hint all render with updated state
+        st.rerun()
 
 st.divider()
 st.caption("Built by an AI that claims this code is production-ready.")
