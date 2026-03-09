@@ -42,10 +42,29 @@ if "status" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
+# Fixed: game_id tracks game resets so text input key changes, clearing old value
+if "game_id" not in st.session_state:
+    st.session_state.game_id = 0
+
+if "difficulty" not in st.session_state:
+    st.session_state.difficulty = difficulty
+
+# Fixed: detect difficulty change and reset all game state so new difficulty takes effect
+if st.session_state.difficulty != difficulty:
+    st.session_state.difficulty = difficulty
+    st.session_state.attempts = 1
+    st.session_state.secret = random.randint(low, high)
+    st.session_state.score = 0
+    st.session_state.status = "playing"
+    st.session_state.history = []
+    st.session_state.game_id += 1
+    st.rerun()
+
 st.subheader("Make a guess")
 
+# Fixed: use low/high from difficulty instead of hardcoded "1 and 100"
 st.info(
-    f"Guess a number between 1 and 100. "
+    f"Guess a number between {low} and {high}. "
     f"Attempts left: {attempt_limit - st.session_state.attempts}"
 )
 
@@ -56,9 +75,10 @@ with st.expander("Developer Debug Info"):
     st.write("Difficulty:", difficulty)
     st.write("History:", st.session_state.history)
 
+# Fixed: include game_id in key so input clears on new game or difficulty change
 raw_guess = st.text_input(
     "Enter your guess:",
-    key=f"guess_input_{difficulty}"
+    key=f"guess_input_{difficulty}_{st.session_state.game_id}"
 )
 
 col1, col2, col3 = st.columns(3)
@@ -69,10 +89,14 @@ with col2:
 with col3:
     show_hint = st.checkbox("Show hint", value=True)
 
-# FIX ME
+# Fixed: reset all game state on new game (was only resetting attempts and secret)
 if new_game:
-    st.session_state.attempts = 0
-    st.session_state.secret = random.randint(1, 100)
+    st.session_state.attempts = 1  # Fixed: was resetting to 0, should match initialization of 1
+    st.session_state.secret = random.randint(low, high)  # Fixed: was hardcoded randint(1,100), ignoring difficulty
+    st.session_state.score = 0
+    st.session_state.status = "playing"  # Fixed: was never reset, blocked play after win/loss
+    st.session_state.history = []
+    st.session_state.game_id += 1
     st.success("New game started.")
     st.rerun()
 
@@ -84,17 +108,16 @@ if st.session_state.status != "playing":
     st.stop()
 
 if submit:
-    st.session_state.attempts += 1
-
     ok, guess_int, err = parse_guess(raw_guess)
 
     if not ok:
         st.session_state.history.append(raw_guess)
         st.error(err)
     else:
+        st.session_state.attempts += 1  # Fixed: moved here so invalid input doesn't consume an attempt
         st.session_state.history.append(guess_int)
 
-        secret = st.session_state.secret
+        secret = st.session_state.secret  # Fixed: always int, was conditionally cast to str on even attempts
 
         outcome, message = check_guess(guess_int, secret)
 

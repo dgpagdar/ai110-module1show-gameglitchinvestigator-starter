@@ -32,7 +32,7 @@ def parse_guess(raw: str):
     return True, value, None
 
 
-# FIX ME :Done
+# Fixed: hint messages were swapped — "Go LOWER" when guess > secret, "Go HIGHER" when guess < secret
 def check_guess(guess, secret):
     """
     Compare guess to secret and return (outcome, message).
