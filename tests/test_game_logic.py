@@ -107,10 +107,10 @@ def test_hard_range():
 # --- Bug fix tests: attempt counter starts at 1 and score calculation is correct ---
 
 def test_update_score_win_on_first_valid_attempt():
-    # Bug fix: attempts start at 1 and increment after validation; attempt_number=2 is the first real guess
-    # 100 - 10 * (2 + 1) = 70
-    score = update_score(current_score=0, outcome="Win", attempt_number=2)
-    assert score == 70
+    # attempts start at 0 and increment after validation; attempt_number=1 is the first real guess
+    # 100 - 10 * (1 + 1) = 80
+    score = update_score(current_score=0, outcome="Win", attempt_number=1)
+    assert score == 80
 
 def test_update_score_win_minimum_points():
     # Score floor is 10 even on late attempts
